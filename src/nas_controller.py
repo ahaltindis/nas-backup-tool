@@ -1,5 +1,6 @@
 from wakeonlan import send_magic_packet
-import paramiko
+import asyncssh
+import asyncio
 import time
 import logging
 import socket
@@ -10,8 +11,6 @@ class NASController:
     def __init__(self, config, dry_run=False):
         self.config = config
         self.dry_run = dry_run
-        self.ssh = paramiko.SSHClient()
-        self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
     def start_nas(self):
         try:
@@ -34,6 +33,15 @@ class NASController:
             logger.error(f"Failed to start NAS: {str(e)}")
             raise
 
+    async def _execute_ssh_command(self, command):
+        async with asyncssh.connect(
+            self.config['nas']['ip'],
+            username=self.config['nas']['username'],
+            known_hosts=None  # In production, you should use known_hosts
+        ) as conn:
+            result = await conn.run(command)
+            return result.stdout
+
     def shutdown_nas(self):
         try:
             if self.dry_run:
@@ -42,19 +50,12 @@ class NASController:
                 return
 
             logger.info(f"Connecting to NAS at {self.config['nas']['ip']}")
-            self.ssh.connect(
-                self.config['nas']['ip'],
-                username=self.config['nas']['username']
-            )
-            logger.info("Executing shutdown command")
-            self.ssh.exec_command(self.config['nas']['shutdown_command'])
+            asyncio.run(self._execute_ssh_command(self.config['nas']['shutdown_command']))
+            logger.info("Shutdown command executed successfully")
             
         except Exception as e:
             logger.error(f"Failed to shutdown NAS: {str(e)}")
             raise
-            
-        finally:
-            self.ssh.close()
 
     def _verify_nas_online(self):
         if self.dry_run:
