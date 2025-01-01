@@ -1,0 +1,12 @@
+[project]
+name = "nas-backup-tool"
+version = "0.1.0"
+description = "Automated NAS backup tool"
+requires-python = ">=3.12"
+dependencies = [
+    "wakeonlan==2.1.0",
+    "paramiko==2.8.1",
+    "PyYAML==6.0.1",
+    "schedule==1.1.0",
+    "six>=1.17.0",
+] 
