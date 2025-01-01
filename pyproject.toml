@@ -14,4 +14,20 @@ dependencies = [
 test = [
     "pytest>=7.4.0",
     "pytest-cov>=4.1.0",
-] 
+]
+dev = [
+    "ruff>=0.3.0",
+]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["E402"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["src"]

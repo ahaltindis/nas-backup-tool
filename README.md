@@ -116,18 +116,22 @@ uv pip install -e ".[test]"
 ```bash
 # Run all tests with coverage report
 uv run pytest
-
-# Run specific test file
-uv run pytest tests/test_utils.py
-
-# Run specific test function
-uv run pytest tests/test_utils.py::test_format_parse_roundtrip
-
-# Run with more detailed output
-uv run pytest -vv
 ```
 
-5. Test changes in dry-run mode:
+5. Format code:
+```bash
+# Install development dependencies
+uv pip install -e ".[dev]"
+
+# Format all files
+./scripts/format.sh
+
+# Or run ruff directly
+uv run ruff format .
+uv run ruff check --fix .
+```
+
+6. Test changes in dry-run mode:
 ```bash
 uv run python -m src.main --dry-run
 ```
