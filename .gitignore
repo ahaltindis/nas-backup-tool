@@ -8,6 +8,7 @@ __pycache__/
 .venv/
 venv/
 ENV/
+.coverage
 
 # Distribution / packaging
 dist/

@@ -107,7 +107,27 @@ uv venv
 uv pip install -e .
 ```
 
-3. Test changes in dry-run mode:
+3. Install test dependencies:
+```bash
+uv pip install -e ".[test]"
+```
+
+4. Run tests:
+```bash
+# Run all tests with coverage report
+uv run pytest
+
+# Run specific test file
+uv run pytest tests/test_utils.py
+
+# Run specific test function
+uv run pytest tests/test_utils.py::test_format_parse_roundtrip
+
+# Run with more detailed output
+uv run pytest -vv
+```
+
+5. Test changes in dry-run mode:
 ```bash
 uv run python -m src.main --dry-run
 ```

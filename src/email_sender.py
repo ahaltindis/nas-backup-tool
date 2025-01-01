@@ -1,8 +1,8 @@
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from datetime import datetime
 import logging
+from .models import BackupStats
 
 logger = logging.getLogger(__name__)
 
@@ -11,11 +11,11 @@ class EmailSender:
         self.config = config
         self.dry_run = dry_run
 
-    def send_report(self, stats):
+    def send_report(self, stats: BackupStats):
         msg = MIMEMultipart()
         msg['From'] = self.config['email']['sender']
         msg['To'] = self.config['email']['recipient']
-        msg['Subject'] = f"Backup Report - {datetime.now().strftime('%Y-%m-%d')}"
+        msg['Subject'] = f"Backup Report - {stats.timestamp}"
 
         body = self._generate_report_body(stats)
         msg.attach(MIMEText(body, 'plain'))
@@ -39,27 +39,28 @@ class EmailSender:
             logger.error(f"Failed to send email: {str(e)}")
             raise
 
-    def _generate_report_body(self, stats):
-        if 'status' in stats and stats['status'] == 'failed':
+    def _generate_report_body(self, stats: BackupStats):
+        if stats.status == 'failed':
             return f"""
 Backup Job Failed!
-Error: {stats['error']}
-Time: {stats['timestamp']}
+Error: {stats.error}
+Time: {stats.timestamp}
 """
         
         report = [
             "Backup Job Completed Successfully",
-            f"Total Files: {stats['total_files']}",
-            f"Total Size: {stats['total_size']}MB",
+            f"Total Files: {stats.total_files}",
+            f"Total Size: {stats.format_total_size()}",
             "\nDetails by Directory:",
         ]
 
-        for dir_path, dir_stats in stats['directories'].items():
+        for dir_stats in stats.directories.values():
             report.extend([
-                f"\nDirectory: {dir_path}",
-                f"Files Transferred: {dir_stats['files_transferred']}",
-                f"Size Transferred: {dir_stats['size_transferred']}",
-                f"Timestamp: {dir_stats['timestamp']}"
+                f"\nDirectory: {dir_stats.source}",
+                f"Files Transferred: {dir_stats.files_transferred}",
+                f"Size Transferred: {dir_stats.size_formatted}",
+                f"Status: {dir_stats.status}",
+                f"Details: {dir_stats.details}"
             ])
 
         return "\n".join(report) 
