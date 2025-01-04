@@ -98,3 +98,6 @@ uv pip install -e .
 
 MIT License - See LICENSE file for details
 
+## Note
+More than ~90% of this code-base developed by Cursor together with Claude 3.5 Sonnet.
+
