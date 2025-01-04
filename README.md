@@ -15,6 +15,7 @@ A Python-based tool for automated NAS backups with Wake-on-LAN support.
 - NAS with Wake-on-LAN and SSH support
 - Ubuntu/Linux host system
 - `rsync` installed on the host system
+- `cifs-utils` for cifs/samba mount
 
 ## Configuration
 
