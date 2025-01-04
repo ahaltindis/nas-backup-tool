@@ -18,6 +18,16 @@ class NASController:
         self.dry_run = dry_run
         self.mount_point = Path(self.config["nas"]["mount"]["local_path"])
 
+    def _check_nas_connection(self, timeout: int = 5) -> bool:
+        """Check if NAS is accessible via SSH."""
+        try:
+            with socket.create_connection(
+                (self.config["nas"]["ip"], 22), timeout=timeout
+            ):
+                return True
+        except (socket.timeout, socket.error):
+            return False
+
     def start_nas(self):
         try:
             if self.dry_run:
@@ -29,15 +39,18 @@ class NASController:
                 logger.info("[DRY RUN] Would mount NAS at %s", self.mount_point)
                 return
 
-            logger.info(f"Sending WOL packet to {self.config['nas']['mac_address']}")
-            send_magic_packet(self.config["nas"]["mac_address"])
+            # Check if NAS is already online
+            if self._check_nas_connection():
+                logger.info("NAS is already online, skipping wake-up")
+            else:
+                # NAS needs to be woken up
+                logger.info(
+                    f"Sending WOL packet to {self.config['nas']['mac_address']}"
+                )
+                send_magic_packet(self.config["nas"]["mac_address"])
 
-            # Wait for NAS to boot
-            logger.info("Waiting for NAS to boot...")
-            time.sleep(10)
-
-            # Verify NAS is accessible
-            self._verify_nas_online()
+                logger.info("Waiting for NAS to boot...")
+                self._verify_nas_online()
 
             # Mount NAS
             self._mount_nas()
@@ -146,21 +159,20 @@ class NASController:
             return True
 
         retry_count = 0
-        max_retries = 5
+        max_retries = 10
+        wait_time = 30  # seconds to wait between retries
 
         while retry_count < max_retries:
-            try:
-                with socket.create_connection(
-                    (self.config["nas"]["ip"], 22), timeout=5
-                ):
-                    logger.info("NAS is online and accepting connections")
-                    return True
-            except (socket.timeout, socket.error):
+            if self._check_nas_connection():
+                logger.info("NAS is online and accepting connections")
+                return True
+            else:
                 retry_count += 1
                 if retry_count < max_retries:
                     logger.warning(
-                        f"NAS not responding, retrying ({retry_count}/{max_retries})"
+                        f"NAS not responding, retrying ({retry_count}/{max_retries}) \
+                                after {wait_time} seconds.."
                     )
-                    time.sleep(30)
+                    time.sleep(wait_time)
 
         raise Exception("NAS failed to come online after maximum retries")
