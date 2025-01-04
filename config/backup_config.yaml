@@ -1,0 +1,21 @@
+nas:
+  mac_address: "00:11:22:33:44:55"  # NAS MAC address for Wake-on-LAN
+  ip: "192.168.1.100"
+  username: "admin"
+  shutdown_command: "shutdown -h now"
+
+backup:
+  directories:
+    - source: "/home/user/documents"
+      destination: "/mnt/backup/documents"
+    - source: "/home/user/photos"
+      destination: "/mnt/backup/photos"
+  frequency: "daily"  # daily, weekly, monthly
+
+email:
+  smtp_server: "smtp.gmail.com"
+  smtp_port: 587
+  sender: "your-email@gmail.com"
+  password: "your-app-password" # Gmail App Password
+  recipient: "your-personal@gmail.com"
+

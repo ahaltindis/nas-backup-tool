@@ -21,8 +21,5 @@ build/
 *.swp
 *.swo
 
-# Local config
-config/backup_config.yaml
-
 # Logs
 *.log 
