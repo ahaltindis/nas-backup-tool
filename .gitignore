@@ -25,5 +25,4 @@ build/
 *.log 
 
 # Local config
-config/
 .env

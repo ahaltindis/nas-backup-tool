@@ -133,7 +133,9 @@ class NASController:
         async with asyncssh.connect(
             self.config["nas"]["ip"],
             username=self.config["nas"]["username"],
-            known_hosts=None,  # In production, you should use known_hosts
+            password=self.config["nas"].get("password"),
+            known_hosts=None,
+            client_keys=None,
         ) as conn:
             result = await conn.run(command)
             return result.stdout
