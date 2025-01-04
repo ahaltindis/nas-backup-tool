@@ -19,16 +19,20 @@ logger = logging.getLogger(__name__)
 
 
 class BackupOrchestrator:
-    def __init__(self, dry_run=False):
-        self.config = self._load_config()
+    def __init__(self, dry_run=False, config_path=None):
         self.dry_run = dry_run
+        self.config = self._load_config(config_path)
+
         self.nas_controller = NASController(self.config, dry_run=dry_run)
         self.backup_manager = BackupManager(self.config, dry_run=dry_run)
         self.email_sender = EmailSender(self.config, dry_run=dry_run)
 
-    def _load_config(self):
-        config_path = Path(__file__).parent.parent / "config" / "backup_config.yaml"
-        with open(config_path, "r") as f:
+    def _load_config(self, config_path):
+        path = Path(
+            config_path
+            or (Path(__file__).parent.parent / "config" / "backup_config.yaml")
+        )
+        with open(path, "r") as f:
             return yaml.safe_load(f)
 
     def run_backup_job(self):
@@ -71,9 +75,15 @@ def main():
     parser.add_argument(
         "--dry-run", action="store_true", help="Run in dry-run mode (no actual changes)"
     )
+    parser.add_argument(
+        "--config",
+        help="Path to config file (default: config/backup_config.yaml)",
+    )
     args = parser.parse_args()
 
-    orchestrator = BackupOrchestrator(dry_run=args.dry_run)
+    logger.info("Starting with arguments: %s", args)
+
+    orchestrator = BackupOrchestrator(dry_run=args.dry_run, config_path=args.config)
 
     # Schedule backup based on configuration
     frequency = orchestrator.config["backup"]["frequency"]
