@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 
 from src.backup_manager import BackupManager
@@ -6,9 +8,13 @@ from src.models import BackupStats, DirectoryStats
 
 @pytest.fixture
 def config():
+    resources = Path(__file__).parent / "resources"
     return {
         "backup": {
-            "directories": [{"source": "/test/source", "destination": "/test/dest"}]
+            "directories": [
+                {"source": str(resources / "test_src1"), "destination": "/test/dest1"},
+                {"source": str(resources / "test_src2"), "destination": "/test/dest2"},
+            ]
         }
     }
 
@@ -18,16 +24,29 @@ def test_backup_manager_dry_run(config):
     stats = manager.run_backup()
 
     assert isinstance(stats, BackupStats)
-    assert stats.total_files == 10  # From simulation
-    assert stats.total_size == 100 * 1024 * 1024  # 100MB from simulation
-    assert len(stats.directories) == 1
+    assert stats.total_files == 3
+    assert stats.total_size == 29
+    assert stats.status == "success"
+    assert len(stats.directories) == 2
 
-    dir_stats = stats.directories["/test/source"]
-    assert isinstance(dir_stats, DirectoryStats)
-    assert dir_stats.files_transferred == 10
-    assert dir_stats.size_bytes == 100 * 1024 * 1024  # 100MB
-    assert dir_stats.size_formatted == "100.00MB"
-    assert dir_stats.status == "dry-run"
+    dir_key1 = list(stats.directories.keys())[0]
+    dir_key2 = list(stats.directories.keys())[1]
+    assert dir_key1.endswith("test_src1")
+    assert dir_key2.endswith("test_src2")
+
+    dir_stats1 = stats.directories[dir_key1]
+    assert isinstance(dir_stats1, DirectoryStats)
+    assert dir_stats1.files_transferred == 2
+    assert dir_stats1.size_bytes == 18
+    assert dir_stats1.size_formatted == "18.00B"
+    assert dir_stats1.status == "dry-run"
+
+    dir_stats2 = stats.directories[dir_key2]
+    assert isinstance(dir_stats2, DirectoryStats)
+    assert dir_stats2.files_transferred == 1
+    assert dir_stats2.size_bytes == 11
+    assert dir_stats2.size_formatted == "11.00B"
+    assert dir_stats2.status == "dry-run"
 
 
 def test_parse_rsync_stats():

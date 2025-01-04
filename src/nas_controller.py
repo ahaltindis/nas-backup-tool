@@ -1,12 +1,13 @@
 import asyncio
 import logging
 import socket
-import subprocess
 import time
 from pathlib import Path
 
 import asyncssh
 from wakeonlan import send_magic_packet
+
+from .utils import run_command
 
 logger = logging.getLogger(__name__)
 
@@ -88,9 +89,7 @@ class NASController:
             source = f"//{self.config['nas']['ip']}/{mount_config['remote_path']}"
             # Add CIFS credentials if configured
             if "cifs" in mount_config:
-                cifs_opts = [
-                    f"credentials={mount_config['cifs']['credentials']}"
-                ]
+                cifs_opts = [f"credentials={mount_config['cifs']['credentials']}"]
                 options = (
                     f"{options},{','.join(cifs_opts)}"
                     if options
@@ -106,12 +105,7 @@ class NASController:
             source,
             str(self.mount_point),
         ]
-        logger.info("Mounting NAS: %s", " ".join(cmd))
-
-        result = subprocess.run(cmd, capture_output=True, text=True)
-
-        if result.returncode != 0:
-            raise Exception(f"Failed to mount NAS: {result.stderr}")
+        run_command(cmd, "Failed to mount NAS", dry_run=self.dry_run)
 
         logger.info("NAS mounted successfully at %s", self.mount_point)
 
@@ -122,11 +116,7 @@ class NASController:
             return
 
         cmd = ["umount", str(self.mount_point)]
-        logger.info("Unmounting NAS: %s", " ".join(cmd))
-
-        result = subprocess.run(cmd, capture_output=True, text=True)
-        if result.returncode != 0:
-            raise Exception(f"Failed to unmount NAS: {result.stderr}")
+        run_command(cmd, "Failed to unmount NAS", dry_run=self.dry_run)
 
         logger.info("NAS unmounted successfully")
 

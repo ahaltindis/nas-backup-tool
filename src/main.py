@@ -4,12 +4,12 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-from .models import BackupStats
 import schedule
 import yaml
 
 from .backup_manager import BackupManager
 from .email_sender import EmailSender
+from .models import BackupStats
 from .nas_controller import NASController
 
 # Configure logging
@@ -69,7 +69,7 @@ class BackupOrchestrator:
                     status="failed",
                     error=error_msg,
                     timestamp=datetime.now().isoformat(),
-                    directories={}
+                    directories={},
                 )
             )
 

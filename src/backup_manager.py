@@ -1,8 +1,8 @@
 import logging
 import re
-import subprocess
 
 from .models import BackupStats, DirectoryStats
+from .utils import run_command
 
 logger = logging.getLogger(__name__)
 
@@ -36,16 +36,9 @@ class BackupManager:
         ]
         cmd = [c for c in cmd if c is not None]
 
-        if self.dry_run:
-            logger.info("[DRY RUN] Would execute: %s", " ".join(cmd))
-            return self._simulate_backup_stats(source)
+        stdout, _ = run_command(cmd, "Rsync failed")
 
-        result = subprocess.run(cmd, capture_output=True, text=True)
-        if result.returncode != 0:
-            logger.error("Rsync failed: %s", result.stderr)
-            raise Exception(f"Rsync failed with code {result.returncode}")
-
-        return self._parse_rsync_stats(result.stdout, source)
+        return self._parse_rsync_stats(stdout, source)
 
     def _parse_rsync_stats(self, output, source) -> DirectoryStats:
         """Parse rsync statistics output"""
@@ -71,6 +64,7 @@ class BackupManager:
         # Create and return directory stats
         dir_stats = DirectoryStats(
             source=source,
+            status="dry-run" if "DRY RUN" in output else None,
             files_transferred=files_transferred,
             size_bytes=size_bytes,
             details=self._extract_summary(output),
@@ -89,13 +83,3 @@ class BackupManager:
             ):
                 summary_lines.append(line.strip())
         return " | ".join(summary_lines)
-
-    def _simulate_backup_stats(self, source: str) -> DirectoryStats:
-        """Generate dummy stats for dry run"""
-        return DirectoryStats(
-            source=source,
-            files_transferred=10,
-            size_bytes=100 * 1024 * 1024,
-            status="dry-run",
-            details="Dry run - no actual changes made",
-        )
