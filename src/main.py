@@ -4,6 +4,7 @@ import time
 from datetime import datetime
 from pathlib import Path
 
+from .models import BackupStats
 import schedule
 import yaml
 
@@ -62,11 +63,14 @@ class BackupOrchestrator:
             logger.error(error_msg)
             # Send error notification
             self.email_sender.send_report(
-                {
-                    "status": "failed",
-                    "error": error_msg,
-                    "timestamp": datetime.now().isoformat(),
-                }
+                BackupStats(
+                    total_files=0,
+                    total_size=0,
+                    status="failed",
+                    error=error_msg,
+                    timestamp=datetime.now().isoformat(),
+                    directories={}
+                )
             )
 
 
