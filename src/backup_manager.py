@@ -1,5 +1,6 @@
 import logging
 import re
+from pathlib import Path
 
 from .models import BackupStats, DirectoryStats
 from .utils import run_command
@@ -26,6 +27,16 @@ class BackupManager:
         return stats
 
     def _backup_directory(self, source, destination) -> DirectoryStats:
+        # Create destination directory if it doesn't exist
+        dest_path = Path(destination)
+        if not self.dry_run:
+            try:
+                dest_path.mkdir(parents=True, exist_ok=True)
+                logger.info("Created destination directory: %s", dest_path)
+            except Exception as e:
+                logger.error("Failed to create directory %s: %s", dest_path, e)
+                raise
+
         cmd = [
             "rsync",
             "-av",
