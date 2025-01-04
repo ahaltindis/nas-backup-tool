@@ -75,7 +75,7 @@ class BackupManager:
         # Create and return directory stats
         dir_stats = DirectoryStats(
             source=source,
-            status="dry-run" if "DRY RUN" in output else None,
+            status="dry-run" if "DRY RUN" in output else "success",
             files_transferred=files_transferred,
             size_bytes=size_bytes,
             details=self._extract_summary(output),
