@@ -8,8 +8,10 @@ services:
     cap_add:
       - SYS_ADMIN  # mount
       - DAC_READ_SEARCH  # cifs/sambda specific
+      - NET_ADMIN  # for WOL broadcast
+    network_mode: "host"  # Required for WOL broadcast
     security_opt:
-      - apparmor:unconfined
+      - apparmor:unconfined  # Required for mount
     volumes:
       # Mount example source directories (customize these)
       - /home/user/documents:/backup/source/documents:ro
