@@ -5,6 +5,7 @@ A Python-based tool for automated NAS backups with Wake-on-LAN support.
 - 🔄 Efficient incremental backups using rsync
 - 📧 Email notifications with detailed backup reports
 - 🔌 Automatic NAS power management
+- 🔗 Secure CIFS/NFS mount support
 - 🐳 Docker support for easy deployment
 - 📊 Backup statistics and reporting
 - ✨ Dry-run mode for testing
@@ -19,30 +20,49 @@ A Python-based tool for automated NAS backups with Wake-on-LAN support.
 
 ## Configuration
 
-Prepare your config based on `config/backup_config.yaml`:
-```yaml:README.md
+Prepare your config based on `config/backup_config.yaml`.
+
+### Mount Configuration
+
+The tool supports both CIFS (Samba) and NFS mounts:
+
+#### CIFS Mount
+```yaml
 nas:
-  mac_address: "00:11:22:33:44:55" # NAS MAC address for Wake-on-LAN
-  ip: "192.168.1.100" # NAS IP address
-  username: "admin" # SSH username
-  shutdown_command: "shutdown -h now"
-backup:
-  directories:
-    - source: "/home/user/documents"
-      destination: "/mnt/backup/documents"
-    - source: "/home/user/photos"
-      destination: "/mnt/backup/photos"
-  frequency: "daily" # daily, weekly, monthly
-email:
-  smtp_server: "smtp.gmail.com"
-  smtp_port: 587
-  sender: "your-email@gmail.com"
-  recipient: "your-personal@email.com"
-  password: "your-app-password" # Gmail App Password
+  mount:
+    type: "cifs"
+    remote_path: "volume1"  # NAS share path
+    local_path: "/mnt/nas-backup"
+    options: "vers=3"  # CIFS mount options
+    cifs:
+      credentials: "/etc/nas_credentials"  # Path to credentials file
 ```
 
-### Backup Schedule
+Create a credentials file with:
+```
+username=your_username
+password=your_password
+domain=your_domain  # Optional
+```
 
+#### NFS Mount
+```yaml
+nas:
+  mount:
+    type: "nfs"
+    remote_path: "/volume1/backup"
+    local_path: "/mnt/nas-backup"
+    options: "vers=3,nolock"
+```
+
+The mount feature:
+- Automatically mounts shares after NAS wake-up
+- Creates mount points if they don't exist
+- Safely unmounts before NAS shutdown
+- Supports both CIFS and NFS protocols
+- Handles credentials securely
+
+__Backup Schedule:__
 - **Daily**: Runs at 2 AM every day
 - **Weekly**: Runs at 2 AM every Monday
 - **Monthly**: Runs at 2 AM on the first Monday of each month
