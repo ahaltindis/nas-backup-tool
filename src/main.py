@@ -79,11 +79,24 @@ def main():
         "--config",
         help="Path to config file (default: config/backup_config.yaml)",
     )
+    parser.add_argument(
+        "--once",
+        action="store_true",
+        help="Run once without scheduling",
+    )
     args = parser.parse_args()
 
     logger.info("Starting with arguments: %s", args)
 
     orchestrator = BackupOrchestrator(dry_run=args.dry_run, config_path=args.config)
+
+    # Run immediately
+    orchestrator.run_backup_job()
+
+    # Exit if --once is specified
+    if args.once:
+        logger.info("Completed single run, exiting")
+        return
 
     # Schedule backup based on configuration
     frequency = orchestrator.config["backup"]["frequency"]
@@ -98,9 +111,6 @@ def main():
         )
     else:
         raise ValueError(f"Unsupported backup frequency: {frequency}")
-
-    # Run immediately on startup
-    orchestrator.run_backup_job()
 
     # Keep the script running
     while True:

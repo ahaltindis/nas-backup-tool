@@ -9,6 +9,7 @@ NC='\033[0m' # No Color
 # Default values
 DRY_RUN=true
 CONFIG_FILE=""
+RUN_ONCE=false
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
@@ -21,12 +22,17 @@ while [[ $# -gt 0 ]]; do
             CONFIG_FILE="$2"
             shift 2
             ;;
+        --once)
+            RUN_ONCE=true
+            shift
+            ;;
         --help)
             echo "Usage: $0 [--prod] [--config <path>]"
             echo
             echo "Options:"
             echo "  --prod          Run in production mode (actual changes)"
             echo "  --config <path> Use custom config file (default: config/backup_config.yaml)"
+            echo "  --once          Run once without scheduling"
             echo "  --help          Show this help message"
             exit 0
             ;;
@@ -75,6 +81,11 @@ if [ "$DRY_RUN" = true ]; then
 else
     echo -e "${YELLOW}Running in PRODUCTION mode (will make actual changes)${NC}"
     ARGS=""
+fi
+
+if [ "$RUN_ONCE" = true ]; then
+    echo -e "${YELLOW}Running once without scheduling${NC}"
+    ARGS="$ARGS --once"
 fi
 
 uv run python -m src.main $ARGS --config "$CONFIG_FILE"
