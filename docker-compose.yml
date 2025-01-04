@@ -2,10 +2,21 @@ version: '3'
 services:
   backup-service:
     build: .
+    # image: server-nas-backup:latest
     platform: linux/amd64
+    restart: unless-stopped
+    cap_add:
+      - SYS_ADMIN  # mount
+      - DAC_READ_SEARCH  # cifs/sambda specific
+    security_opt:
+      - apparmor:unconfined
     volumes:
-      - /path/to/local/folders:/backup/source
-      - ./config:/app/config
+      # Mount example source directories (customize these)
+      - /home/user/documents:/backup/source/documents:ro
+      - /home/user/photos:/backup/source/photos:ro
+      # Mount config file and credentials
+      - ./backup_config.yaml:/app/config.yaml:ro
+      - ./nas_credentials:/etc/nas_credentials:ro
     environment:
       - TZ=UTC
-    restart: unless-stopped 
+      - CONFIG_FILE=/app/config.yaml

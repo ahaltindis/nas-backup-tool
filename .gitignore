@@ -23,3 +23,7 @@ build/
 
 # Logs
 *.log 
+
+# Local config
+config/
+.env
