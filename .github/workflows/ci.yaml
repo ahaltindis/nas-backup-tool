@@ -1,0 +1,89 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12.8'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rsync
+
+      - name: Create CI config
+        run: |
+          mkdir -p config
+          cat > config/ci_config.yaml << EOF
+          nas:
+            mac_address: "00:11:22:33:44:55"
+            ip: "192.168.1.100"
+            username: "test"
+            password: "test"
+            shutdown_command: "shutdown -h now"
+            mount:
+              remote_path: "volume1"
+              local_path: "/tmp/nas-backup"
+              type: "cifs"
+              options: "vers=3"
+
+          backup:
+            directories:
+              - source: "${{ github.workspace }}/tests/resources/test_src1"
+                destination: "/tmp/nas-backup/test1"
+              - source: "${{ github.workspace }}/tests/resources/test_src2"
+                destination: "/tmp/nas-backup/test2"
+
+          email:
+            smtp_server: "localhost"
+            smtp_port: 25
+            sender: "test@localhost"
+            recipient: "test@localhost"
+          EOF
+
+      - name: Run local setup
+        run: |
+          chmod +x run-local.sh
+          ./run-local.sh --once --config config/ci_config.yaml
+
+      - name: Run tests
+        run: |
+          chmod +x scripts/test.sh
+          ./scripts/test.sh
+
+  build-and-push:
+    needs: test
+    runs-on: ubuntu-22.04
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and Push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/nas-backup-tool:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/nas-backup-tool:${{ github.sha }}
