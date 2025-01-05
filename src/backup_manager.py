@@ -60,7 +60,7 @@ class BackupManager:
             error_log = None
         except CommandError as e:
             if e.returncode == 23:  # Partial transfer due to error
-                stdout = e.stderr
+                stdout = e.stdout
             else:
                 raise
 

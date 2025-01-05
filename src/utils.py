@@ -15,8 +15,9 @@ def format_size(size_in_bytes: int) -> str:
 
 
 class CommandError(Exception):
-    def __init__(self, message: str, returncode: int, stderr: str):
+    def __init__(self, message: str, returncode: int, stdout: str, stderr: str):
         self.returncode = returncode
+        self.stdout = stdout
         self.stderr = stderr
         super().__init__(message)
 
@@ -52,7 +53,10 @@ def run_command(
 
     if result.returncode != 0:
         raise CommandError(
-            f"{error_msg}: {result.stderr}", result.returncode, result.stderr
+            f"{error_msg}: {result.stderr}",
+            result.returncode,
+            result.stdout,
+            result.stderr,
         )
 
     return result.stdout, result.stderr
