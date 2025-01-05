@@ -14,6 +14,13 @@ def format_size(size_in_bytes: int) -> str:
     return f"{size_in_bytes:.2f}PB"
 
 
+class CommandError(Exception):
+    def __init__(self, message: str, returncode: int, stderr: str):
+        self.returncode = returncode
+        self.stderr = stderr
+        super().__init__(message)
+
+
 def run_command(
     cmd: List[str],
     error_msg: str,
@@ -32,9 +39,8 @@ def run_command(
         Tuple of (stdout, stderr)
 
     Raises:
-        Exception: If command fails
+        CommandError: If command fails
     """
-    # Use log_cmd if provided, otherwise use cmd
     display_cmd = log_cmd if log_cmd is not None else cmd
 
     if dry_run:
@@ -45,6 +51,8 @@ def run_command(
     result = subprocess.run(cmd, capture_output=True, text=True)
 
     if result.returncode != 0:
-        raise Exception(f"{error_msg}: {result.stderr}")
+        raise CommandError(
+            f"{error_msg}: {result.stderr}", result.returncode, result.stderr
+        )
 
     return result.stdout, result.stderr

@@ -4,7 +4,7 @@ from datetime import datetime
 from pathlib import Path
 
 from .models import BackupStats, DirectoryStats
-from .utils import run_command
+from .utils import CommandError, run_command
 
 logger = logging.getLogger(__name__)
 
@@ -55,20 +55,33 @@ class BackupManager:
         ]
         cmd = [c for c in cmd if c is not None]
 
-        stdout, _ = run_command(cmd, "Rsync failed")
+        try:
+            stdout, _ = run_command(cmd, "Rsync failed")
+            error_log = None
+        except CommandError as e:
+            if e.returncode == 23:  # Partial transfer due to error
+                stdout = e.stderr
+            else:
+                raise
 
         # Check error log if it exists and not in dry-run mode
-        if not self.dry_run and log_file.exists():
-            with open(log_file, "r") as f:
-                error_content = f.read()
-                if error_content:
-                    logger.warning(
-                        "Rsync reported errors. Check %s for details", log_file
-                    )
+        if not self.dry_run and log_file.exists() and self._has_errors_in_log(log_file):
+            logger.warning("Rsync reported errors. Check %s for details", log_file)
+            error_log = log_file
 
-        return self._parse_rsync_stats(
-            stdout, source, error_log=log_file if not self.dry_run else None
-        )
+        return self._parse_rsync_stats(stdout, source, error_log=error_log)
+
+    def _has_errors_in_log(self, log_file: Path) -> bool:
+        """Check if the rsync log file contains actual errors."""
+        if not log_file.exists():
+            return False
+
+        with open(log_file, "r") as f:
+            # Look for error indicators in rsync log
+            for line in f:
+                if any(x in line.lower() for x in ["error", "failed", "cannot"]):
+                    return True
+        return False
 
     def _parse_rsync_stats(self, output, source, error_log=None) -> DirectoryStats:
         """Parse rsync statistics output"""
