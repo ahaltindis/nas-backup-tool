@@ -1,8 +1,7 @@
-version: '3'
 services:
   backup-service:
-    build: .
-    # image: server-nas-backup:latest
+    image: ahaltindis/nas-backup-tool:latest
+    # build: .  # To directly build from source
     platform: linux/amd64
     restart: unless-stopped
     cap_add:
