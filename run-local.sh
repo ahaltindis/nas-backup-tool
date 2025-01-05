@@ -89,3 +89,7 @@ if [ "$RUN_ONCE" = true ]; then
 fi
 
 uv run python -m src.main $ARGS --config "$CONFIG_FILE"
+exit_code=$?
+
+# Pass through the exit code from the Python script
+exit $exit_code

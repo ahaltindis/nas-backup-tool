@@ -1,5 +1,6 @@
 import argparse
 import logging
+import sys
 import time
 from datetime import datetime
 from pathlib import Path
@@ -36,7 +37,8 @@ class BackupOrchestrator:
         with open(path, "r") as f:
             return yaml.safe_load(f)
 
-    def run_backup_job(self):
+    def run_backup_job(self) -> bool:
+        """Run backup job and return True if successful, False otherwise."""
         try:
             logger.info("Starting backup job%s", " (DRY RUN)" if self.dry_run else "")
 
@@ -58,6 +60,12 @@ class BackupOrchestrator:
 
             logger.info("Backup job completed successfully")
 
+            # Check if any directory had errors
+            has_errors = any(
+                d.status == "completed_with_errors" for d in stats.directories.values()
+            )
+            return not has_errors
+
         except Exception as e:
             error_msg = f"Backup job failed: {str(e)}"
             logger.error(error_msg)
@@ -72,6 +80,7 @@ class BackupOrchestrator:
                     directories={},
                 )
             )
+            return False
 
 
 def main():
@@ -95,12 +104,12 @@ def main():
     orchestrator = BackupOrchestrator(dry_run=args.dry_run, config_path=args.config)
 
     # Run immediately
-    orchestrator.run_backup_job()
+    success = orchestrator.run_backup_job()
 
     # Exit if --once is specified
     if args.once:
         logger.info("Completed single run, exiting")
-        return
+        sys.exit(0 if success else 1)
 
     # Schedule backup based on configuration
     frequency = orchestrator.config["backup"]["frequency"]
@@ -114,7 +123,8 @@ def main():
             orchestrator.run_backup_job
         )
     else:
-        raise ValueError(f"Unsupported backup frequency: {frequency}")
+        logger.error(f"Unsupported backup frequency: {frequency}")
+        sys.exit(1)
 
     # Keep the script running
     while True:
