@@ -1,3 +1,4 @@
+from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -70,3 +71,25 @@ Total bytes received: 1,234
     assert dir_stats.files_transferred == 123
     assert dir_stats.size_bytes == 123456
     assert dir_stats.size_formatted == "120.56KB"
+
+
+def test_backup_manager_with_errors(config, tmp_path):
+    # Create a mock error log with timestamp
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    error_log = tmp_path / f"rsync_errors_{timestamp}.log"
+    error_log.write_text("some error occurred")
+
+    manager = BackupManager(config, dry_run=False)
+
+    # Mock the error log check
+    dir_stats = manager._parse_rsync_stats(
+        "Number of regular files transferred: 123\n\
+Total transferred file size: 123,456 bytes",
+        "/test/source",
+        error_log=error_log,
+    )
+
+    assert dir_stats.status == "completed_with_errors"
+    assert dir_stats.error_log == error_log
+    assert dir_stats.error_log.name.startswith("rsync_errors_")
+    assert dir_stats.error_log.name.endswith(".log")

@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from datetime import datetime
+from pathlib import Path
 from typing import Dict, Optional
 
 from .utils import format_size
@@ -11,8 +12,11 @@ class DirectoryStats:
     files_transferred: int
     size_bytes: int
     timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
-    status: str = "success"
+    status: str = (
+        "success"  # Can be "success", "dry-run", "completed_with_errors", or "failed"
+    )
     details: str = ""
+    error_log: Optional[Path] = None
 
     @property
     def size_formatted(self) -> str:

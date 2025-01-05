@@ -1,5 +1,6 @@
 import logging
 import re
+from datetime import datetime
 from pathlib import Path
 
 from .models import BackupStats, DirectoryStats
@@ -37,10 +38,17 @@ class BackupManager:
                 logger.error("Failed to create directory %s: %s", dest_path, e)
                 raise
 
+        # Updated rsync command with error handling and timestamped log file
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        log_file = dest_path / f"rsync_errors_{timestamp}.log"
         cmd = [
             "rsync",
             "-av",
             "--stats",
+            "--ignore-errors",  # Continue on error
+            "--partial",  # Keep partially transferred files
+            "--safe-links",  # Ignore symlinks that point outside source tree
+            f"--log-file={log_file}",  # Log errors to file
             "--dry-run" if self.dry_run else None,
             source,
             destination,
@@ -49,9 +57,20 @@ class BackupManager:
 
         stdout, _ = run_command(cmd, "Rsync failed")
 
-        return self._parse_rsync_stats(stdout, source)
+        # Check error log if it exists and not in dry-run mode
+        if not self.dry_run and log_file.exists():
+            with open(log_file, "r") as f:
+                error_content = f.read()
+                if error_content:
+                    logger.warning(
+                        "Rsync reported errors. Check %s for details", log_file
+                    )
 
-    def _parse_rsync_stats(self, output, source) -> DirectoryStats:
+        return self._parse_rsync_stats(
+            stdout, source, error_log=log_file if not self.dry_run else None
+        )
+
+    def _parse_rsync_stats(self, output, source, error_log=None) -> DirectoryStats:
         """Parse rsync statistics output"""
         files_transferred = 0
         size_bytes = 0
@@ -72,13 +91,19 @@ class BackupManager:
                 elif key == "files":
                     files_transferred = int(value)
 
+        # Update status to include error information
+        status = "dry-run" if "DRY RUN" in output else "success"
+        if error_log and error_log.exists():
+            status = "completed_with_errors"
+
         # Create and return directory stats
         dir_stats = DirectoryStats(
             source=source,
-            status="dry-run" if "DRY RUN" in output else "success",
+            status=status,
             files_transferred=files_transferred,
             size_bytes=size_bytes,
             details=self._extract_summary(output),
+            error_log=error_log,
         )
 
         logger.info("Backup stats for %s: %s", source, dir_stats)

@@ -68,5 +68,7 @@ Time: {stats.timestamp}
                     f"Details: {dir_stats.details}",
                 ]
             )
+            if dir_stats.status == "completed_with_errors" and dir_stats.error_log:
+                report.append(f"Error Log: {dir_stats.error_log}")
 
         return "\n".join(report)
